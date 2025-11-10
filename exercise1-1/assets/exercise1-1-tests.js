@@ -1,4 +1,4 @@
-import { TestResults, advanceToFrame, getShapes, canvasStatus, testSettingIsCalled, LOAD_IMAGE, checkCanvasSize, TestImage } from "../../lib/test-utils.js";
+import { TestResults, advanceToFrame, getShapes, canvasStatus, testSettingIsCalled, LOAD_IMAGE, checkCanvasSize, TestImage, IMAGE } from "../../lib/test-utils.js";
 
 /**
  * A hacky solution to wait for p5js to load the canvas. Include in all exercise test files.
@@ -48,19 +48,54 @@ async function runTests(canvas) {
         TestResults.addWarning("<code>loadImage()</code> does not appear to be called (this test will not detect usage of <code>loadImage()</code> outside <code>preload()</code>, <code>setup()</code>, or <code>draw()</code>).");
     }
     const imgOnLoad = new TestImage(width / 2, height / 2, width, height, 1024, 820, CENTER);
-    checkImageProperties(imgOnLoad, [...getShapes()]);
-    imgOnLoad.x -= 0.5;
-    imgOnLoad.y -= 0.5;
-    imgOnLoad.w++;
-    imgOnLoad.h++;
-    advanceToFrame(frameCount+1);
-    checkImageProperties(imgOnLoad, [...getShapes()]);
-    advanceToFrame(1000);
-    imgOnLoad.x = width / 2 - 922 / 2;
-    imgOnLoad.y = height / 2 - 820 / 2;
-    imgOnLoad.w = 922;
-    imgOnLoad.h = 820;
-    checkImageProperties(imgOnLoad, [...getShapes()]);
+    const imgOnLoadIncFirst = new TestImage(width / 2, height / 2, width + 1, height + 1, 1024, 820, CENTER);
+    const actualShapesOnLoad = getShapes();
+    const firstImg = actualShapesOnLoad[actualShapesOnLoad.length - 1];
+    if (firstImg.type === IMAGE && imgOnLoad.isEqualTo(actualShapesOnLoad[actualShapesOnLoad.length - 1]) || imgOnLoadIncFirst.isEqualTo(actualShapesOnLoad[actualShapesOnLoad.length - 1])) {
+        TestResults.addPass("When the sketch first loads, there is one image in the centre that is the same size as the canvas.");
+    } else {
+        TestResults.addFail("When the sketch first loads, there should be one image in the centre of the canvas that is the same size as the canvas. You can achieve this by setting <code>imageMode(CENTER)</code>, positioning the image at width / 2, height / 2, and giving it a width of 512 and a height of 410 (use variables!).")
+    }
+    advanceToFrame(frameCount + 1);
+    const actualShapesNextFrame = getShapes();
+    const secondImg = actualShapesNextFrame[actualShapesNextFrame.length - 1];
+    if (firstImg.type === IMAGE && secondImg.type === IMAGE) {
+        const firstLoc = secondImg.getLocationInMode(CENTER);
+        const secondLoc = secondImg.getLocationInMode(CENTER);
+        if (firstLoc[0] === secondLoc[0] && firstLoc[1] === secondLoc[1] && firstLoc[0] === width / 2 && firstLoc[1] === height / 2) {
+            TestResults.addPass("At frame 2, the image is in the centre of the canvas.");
+        }
+        if (secondImg.w - firstImg.w === 1 && secondImg.h - firstImg.h) {
+            TestResults.addPass("The image grows by 1 pixel (width and height) each frame.");
+
+            advanceToFrame(2000);
+            const actualShapesStop = getShapes();
+            const lastImg = actualShapesStop[actualShapesStop.length - 1];
+            if (lastImg.h === 820) {
+                TestResults.addPass("Your image stops growing when it reaches the height of the original image (820px).");
+            } else {
+                TestResults.addFail(`The image should stop growing once its height reaches the height of the original image (820px). After 2000 frames, your image is ${lastImg.h} pixels tall.`);
+            }
+        } else {
+            TestResults.addFail(`Expected the image to grow by 1 pixel per frame along the width and height. Your image width grows by ${secondImg.w - firstImg.w} and the height grows by ${secondImg.h - firstImg.h}.`);
+        }
+    } else {
+        TestResults.addFail("The image does not appear to be drawn at frame 2.");
+    }
+
+    // checkImageProperties(imgOnLoad, [...getShapes()]);
+    // imgOnLoad.x -= 0.5;
+    // imgOnLoad.y -= 0.5;
+    // imgOnLoad.w++;
+    // imgOnLoad.h++;
+    // advanceToFrame(frameCount+1);
+    // checkImageProperties(imgOnLoad, [...getShapes()]);
+    // advanceToFrame(1000);
+    // imgOnLoad.x = width / 2 - 922 / 2;
+    // imgOnLoad.y = height / 2 - 820 / 2;
+    // imgOnLoad.w = 922;
+    // imgOnLoad.h = 820;
+    // checkImageProperties(imgOnLoad, [...getShapes()]);
     TestResults.display(resultsDiv);
 }
 
